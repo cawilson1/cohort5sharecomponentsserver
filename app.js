@@ -73,6 +73,7 @@ app.post("/get-s3-pic", authorizeUser, async (req, resp) => {
       "SELECT * FROM componentsDb.users WHERE username=?",
       [username]
     );
+    conn.release();
     console.log("response", response[0][0]);
     const avatarPath = `public/${response[0][0].avatar}`;
     console.log("file path:", avatarPath);
@@ -107,6 +108,40 @@ app.put("/update-pic", authorizeUser, async (req, resp) => {
     );
     conn.release();
     resp.status(201).send(result);
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
+app.get("/s3-component-url", async (req, resp) => {
+  try {
+    // const username = req.decodedToken["cognito:username"];
+    const conn = await pool.getConnection();
+    // const response = await conn.execute(
+    //   "SELECT * FROM componentsDb.users WHERE username=?",
+    //   [username]
+    // );
+    // console.log("response", response[0][0]);
+    conn.release();
+
+    const componentPath =
+      "public/mike/components/fb04417d-934a-43b2-a809-f1992c457ba4.js";
+    console.log("file path:", componentPath);
+
+    const params = {
+      Bucket: "cohortgroupbucket135153-cohortfive",
+      Key: componentPath,
+      Expires: 30,
+    };
+
+    s3.getSignedUrlPromise("getObject", params)
+      .then((url) => {
+        console.log(url);
+        resp.status(200).send(url);
+      })
+
+      .catch((err) => resp.status(500).send(err));
   } catch (error) {
     console.log(error);
     resp.status(500).send(error);

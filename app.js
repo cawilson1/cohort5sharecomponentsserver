@@ -44,6 +44,27 @@ app.post('/user', authorizeUser, async (req, resp) => {
   }
 });
 
+app.post('/update-user', authorizeUser, async (req, resp) => {
+  console.log('update user hit');
+  try {
+    const username = req.decodedToken['cognito:username'];
+    const name = req.body.name;
+    const aboutMe = req.body.aboutMe;
+    const conn = await pool.getConnection();
+    const response = await conn.execute(
+      'UPDATE componentsDb.users SET name=?, about=? WHERE username=?',
+      [name, aboutMe, username],
+    );
+
+    conn.release();
+
+    resp.status(201).send(response);
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
 app.post('/create-user', authorizeUser, async (req, resp) => {
   console.log('create user hit');
   try {
@@ -64,10 +85,59 @@ app.post('/create-user', authorizeUser, async (req, resp) => {
   }
 });
 
+app.post('/get-user-comps', authorizeUser, async (req, resp) => {
+  console.log('get user comps hit');
+  try {
+    const username = req.decodedToken['cognito:username'];
+    const conn = await pool.getConnection();
+    const response = await conn.execute(
+      'SELECT * FROM componentsDb.components WHERE creator=?',
+      [username],
+    );
+
+    conn.release();
+    resp.status(200).send(response[0]);
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
+app.post('/get-s3-component-screenshot2', async (req, resp) => {
+  console.log('get s3 component screenshot2@@@@@@@@');
+  try {
+    // const conn = await pool.getConnection();
+    const screenshotPath = 'public/' + req.body.path;
+    // const screenshotPath =
+    //   'public/mike/components/TestComponent/Itachi Uchiha.jpg';
+    const params = {
+      Bucket: 'cohortgroupbucket135153-cohortfive',
+      Key: screenshotPath,
+      Expires: 30,
+    };
+
+    s3.getSignedUrlPromise('getObject', params)
+      .then((url) => {
+        console.log(url);
+        resp.status(200).send(url);
+      })
+
+      .catch((err) => resp.status(500).send(err));
+
+    // conn.release();
+    //resp.status(200).send(response)
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
+//get s3 component screenshot needs to take path and get s3pic from storage
 app.post('/get-s3-component-screenshot', async (req, resp) => {
   console.log('get s3 component screenshot');
   try {
-    // const conn = await pool.getConnection()
+    // const conn = await pool.getConnection();
+    //const screenShotPath = "public/" + req.body.screenshotPath
     const screenshotPath =
       'public/mike/components/TestComponent/Itachi Uchiha.jpg';
     const params = {
@@ -84,13 +154,15 @@ app.post('/get-s3-component-screenshot', async (req, resp) => {
 
       .catch((err) => resp.status(500).send(err));
 
-    // conn.release()
+    // conn.release();
+    //resp.status(200).send(response)
   } catch (error) {
     console.log(error);
     resp.status(500).send(error);
   }
 });
 
+//get s3 component js needs be changed to take path to js file
 app.post('/get-s3-component-js', async (req, resp) => {
   console.log('get s3 component js file');
   try {
@@ -117,6 +189,7 @@ app.post('/get-s3-component-js', async (req, resp) => {
   }
 });
 
+//get s3 read me needs to be changed to take readme path
 app.post('/get-s3-component-readme', async (req, resp) => {
   console.log('get s3 component readme');
   try {
@@ -221,6 +294,39 @@ app.get('/s3-component-url', async (req, resp) => {
       })
 
       .catch((err) => resp.status(500).send(err));
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
+app.post('/create-component', authorizeUser, async (req, resp) => {
+  console.log('create component hit');
+  try {
+    const componentUuid = req.body.componentUuid;
+    const title = req.body.title;
+    const creator = req.decodedToken['cognito:username'];
+    const mainFile = req.body.mainFileUrl.key;
+    const readMe = req.body.readMeUrl.key;
+    const screenshot = req.body.screenshotUrl.key;
+    const timeCreated = Date.now();
+
+    const conn = await pool.getConnection();
+    const response = await conn.execute(
+      'INSERT INTO componentsDb.components (componentUuid, title, creator, mainFile, readMe, screenshot, timeCreated) VALUES (?,?,?,?,?,?,?)',
+      [
+        componentUuid,
+        title,
+        creator,
+        mainFile,
+        readMe,
+        screenshot,
+        timeCreated,
+      ],
+    );
+
+    conn.release();
+    resp.status(201).send(response);
   } catch (error) {
     console.log(error);
     resp.status(500).send(error);

@@ -85,6 +85,25 @@ app.post('/create-user', authorizeUser, async (req, resp) => {
   }
 });
 
+//home page, list all comps from all users
+app.post('/get-all-comps', authorizeUser, async (req, resp) => {
+  console.log('get all comps hit');
+  try {
+    const username = req.decodedToken['cognito:username'];
+    const conn = await pool.getConnection();
+    const response = await conn.execute(
+      'SELECT * FROM componentsDb.components'
+    );
+
+    conn.release();
+    resp.status(200).send(response[0]);
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
+
 app.post('/get-user-comps', authorizeUser, async (req, resp) => {
   console.log('get user comps hit');
   try {
@@ -162,6 +181,32 @@ app.post('/get-s3-component-screenshot', async (req, resp) => {
   }
 });
 
+app.post('/get-s3-component-js2', async (req, resp) => {
+  console.log('get s3 component js file');
+  try {
+    // const conn = await pool.getConnection()
+    const jsPath = 'public/' + req.body.path
+    const params = {
+      Bucket: 'cohortgroupbucket135153-cohortfive',
+      Key: jsPath,
+      Expires: 30,
+    };
+
+    s3.getSignedUrlPromise('getObject', params)
+      .then((url) => {
+        console.log(url);
+        resp.status(200).send(url);
+      })
+
+      .catch((err) => resp.status(500).send(err));
+
+    // conn.release()
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
 //get s3 component js needs be changed to take path to js file
 app.post('/get-s3-component-js', async (req, resp) => {
   console.log('get s3 component js file');
@@ -195,6 +240,33 @@ app.post('/get-s3-component-readme', async (req, resp) => {
   try {
     // const conn = await pool.getConnection()
     const readMePath = 'public/mike/components/TestComponent/private.txt';
+    const params = {
+      Bucket: 'cohortgroupbucket135153-cohortfive',
+      Key: readMePath,
+      Expires: 30,
+    };
+
+    s3.getSignedUrlPromise('getObject', params)
+      .then((url) => {
+        console.log(url);
+        resp.status(200).send(url);
+      })
+
+      .catch((err) => resp.status(500).send(err));
+
+    // conn.release()
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
+//get s3 read me needs to be changed to take readme path
+app.post('/get-s3-component-readme2', async (req, resp) => {
+  console.log('get s3 component readme');
+  try {
+    // const conn = await pool.getConnection()
+    const readMePath = 'public/' + req.body.path
     const params = {
       Bucket: 'cohortgroupbucket135153-cohortfive',
       Key: readMePath,

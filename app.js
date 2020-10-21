@@ -121,6 +121,23 @@ app.post("/get-all-comps", authorizeUser, async (req, resp) => {
   }
 });
 
+app.post("/search", authorizeUser, async (req, resp) => {
+  console.log("get search results hit");
+  try {
+    const search = req.body.search;
+    const conn = await pool.getConnection();
+    const response = await conn.execute(
+      "SELECT * FROM componentsDb.components WHERE title LIKE ?",
+      ["%" + search + "%"]
+    );
+    conn.release();
+    resp.status(200).send(response[0]);
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
 app.post("/get-user-comps", authorizeUser, async (req, resp) => {
   console.log("get user comps hit");
   try {

@@ -470,6 +470,58 @@ app.post("/create-component", authorizeUser, async (req, resp) => {
   }
 });
 
+app.post("/update-component", authorizeUser, async (req, resp) => {
+  console.log("update hit");
+  try {
+    const componentUuid = req.body.componentUuid;
+    const title = req.body.title;
+    const creator = req.decodedToken["cognito:username"];
+    const mainFile = req.body.mainFileUrl;
+    const readMe = req.body.readMeUrl;
+    const screenshot = req.body.screenshotUrl;
+    const timeCreated = Date.now();
+
+    console.log(componentUuid);
+    console.log(title);
+    console.log(creator);
+    console.log(mainFile);
+    console.log(readMe);
+    console.log(screenshot);
+    console.log(timeCreated);
+
+    const conn = await pool.getConnection();
+
+    const response = await conn.execute(
+      "UPDATE componentsDb.components SET title=?, creator=?, mainFile=?, readMe=?, screenshot=?, timeCreated=? WHERE componentUuid=?",
+      [title, creator, mainFile, readMe, screenshot, timeCreated, componentUuid]
+    );
+    conn.release();
+    resp.status(201).send({ message: "successful update" });
+  } catch (error) {
+    resp.status(500).send(error);
+    console.log(error);
+  }
+});
+
+app.post("/delete-component", authorizeUser, async (req, resp) => {
+  console.log("delete comp hit");
+  try {
+    const componentId = req.body.componentId;
+    const conn = await pool.getConnection();
+
+    const response = await conn.execute(
+      "DELETE FROM componentsDb.components WHERE componentId=?",
+      [componentId]
+    );
+
+    conn.release();
+    resp.status(200).send({ message: "successfully deleted" });
+  } catch (error) {
+    resp.status(500).send(error);
+    console.log(error);
+  }
+});
+
 //follow-user
 app.post("/follow-user", authorizeUser, async (req, resp) => {
   try {

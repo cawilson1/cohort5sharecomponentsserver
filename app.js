@@ -204,34 +204,6 @@ app.post("/get-s3-component-screenshot2", async (req, resp) => {
 });
 
 //get s3 component screenshot needs to take path and get s3pic from storage
-app.post("/get-s3-component-screenshot", async (req, resp) => {
-  console.log("get s3 component screenshot");
-  try {
-    // const conn = await pool.getConnection();
-    //const screenShotPath = "public/" + req.body.screenshotPath
-    const screenshotPath =
-      "public/mike/components/TestComponent/Itachi Uchiha.jpg";
-    const params = {
-      Bucket: "cohortgroupbucket135153-cohortfive",
-      Key: screenshotPath,
-      Expires: 30,
-    };
-
-    s3.getSignedUrlPromise("getObject", params)
-      .then((url) => {
-        console.log(url);
-        resp.status(200).send(url);
-      })
-
-      .catch((err) => resp.status(500).send(err));
-
-    // conn.release();
-    //resp.status(200).send(response)
-  } catch (error) {
-    console.log(error);
-    resp.status(500).send(error);
-  }
-});
 
 app.post("/get-s3-component-js2", async (req, resp) => {
   console.log("get s3 component js file");
@@ -260,58 +232,8 @@ app.post("/get-s3-component-js2", async (req, resp) => {
 });
 
 //get s3 component js needs be changed to take path to js file
-app.post("/get-s3-component-js", async (req, resp) => {
-  console.log("get s3 component js file");
-  try {
-    // const conn = await pool.getConnection()
-    const jsPath = "public/mike/components/TestComponent/recursion.js";
-    const params = {
-      Bucket: "cohortgroupbucket135153-cohortfive",
-      Key: jsPath,
-      Expires: 30,
-    };
-
-    s3.getSignedUrlPromise("getObject", params)
-      .then((url) => {
-        console.log(url);
-        resp.status(200).send(url);
-      })
-
-      .catch((err) => resp.status(500).send(err));
-
-    // conn.release()
-  } catch (error) {
-    console.log(error);
-    resp.status(500).send(error);
-  }
-});
 
 //get s3 read me needs to be changed to take readme path
-app.post("/get-s3-component-readme", async (req, resp) => {
-  console.log("get s3 component readme");
-  try {
-    // const conn = await pool.getConnection()
-    const readMePath = "public/mike/components/TestComponent/private.txt";
-    const params = {
-      Bucket: "cohortgroupbucket135153-cohortfive",
-      Key: readMePath,
-      Expires: 30,
-    };
-
-    s3.getSignedUrlPromise("getObject", params)
-      .then((url) => {
-        console.log(url);
-        resp.status(200).send(url);
-      })
-
-      .catch((err) => resp.status(500).send(err));
-
-    // conn.release()
-  } catch (error) {
-    console.log(error);
-    resp.status(500).send(error);
-  }
-});
 
 //get s3 read me needs to be changed to take readme path
 app.post("/get-s3-component-readme2", async (req, resp) => {
@@ -592,6 +514,52 @@ app.post("/delete-followed-user", authorizeUser, async (req, resp) => {
     resp.status(500).send({ message: error });
   }
 });
+
+//route for tags
+
+app.post("/addtag", authorizeUser, async (req, resp) => {
+  try {
+    const attribute = req.body.tag;
+    const component = req.body.componentId;
+
+    const conn = await pool.getConnection();
+    const response = await conn.execute(
+      `INSERT INTO componentsDb.tags (component, attribute) VALUES (?,?)`,
+      [component, attribute]
+    );
+    conn.release();
+    resp.status(200).send("successfully added a tag");
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
+//route for getting all tags by name/category
+app.post("/get-components-by-tags", authorizeUser, async (req, resp) => {
+  try {
+    const token = req.decodedToken["cognito:username"];
+    const attribute = req.body.tag;
+
+    const conn = await pool.getConnection();
+    await conn.query("USE componentsDb");
+    const response = await conn.execute(
+      `SELECT * FROM components JOIN (SELECT component FROM tags WHERE attribute LIKE ?) AS newTags ON components.componentId = newTags.component`,
+      ["%" + attribute + "%"]
+    );
+    console.log(response[0]);
+
+    conn.release();
+    resp.status(200).send(response[0]);
+  } catch (error) {
+    console.log(error);
+    resp.status(500).send(error);
+  }
+});
+
+//route for getting/filtering by tag
+//JOIN
+
 //post for get s3 image which is the users avatar
 
 app.listen(PORT, () => console.log("app is listening on", PORT));
